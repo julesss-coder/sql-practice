@@ -184,3 +184,399 @@ from emp
 where hiredate between '4-01-81' and '15-04-81';
 
 // Datumsformat so eingeben, wie ich es urspruenglich eingegeben habe, nicht wie es Oracle SQL anzeigt, d.h. d-mm-yy (bei einstelligen Tagen nur eine Stelle ohne vorhergehende 0)
+
+
+===============================================
+
+SQL EXERCISE 4
+
+===============================================
+
+1-6 Tennis query
+
+1. output TEAMNO of the teams in which the player with the number 27 is not captain
+
+select
+  teamno 
+from teams
+where not playerno=27;
+
+2. output of PLAYERNO, NAME and INITIALS of the players who have won at least one match
+
+select distinct 
+  players.playerno, name, initials 
+from players, matches 
+where won >= 1 
+and players.playerno = matches.playerno;
+
+// =========== Get number of matches won per player =========
+
+select
+    playerno, sum(won)
+from matches
+group by playerno;
+
+// =========== Get number of matches won per player where won >= 2 =========
+
+select
+    playerno, sum(won)
+from matches
+group by playerno
+having sum(won)>2;
+
+
+3. output of playerNo and name of the players who have received at least one penalty
+
+players:
+- playerno 
+- name
+penalties:
+  - playerno
+  - amount 
+
+select distinct
+  players.playerno,
+  Name
+from players, penalties
+where players.playerno = penalties.playerno
+and amount>1;
+
+4. output of playerNo and name of the players, who have received at least one penalty over 50.
+
+select distinct
+  players.playerno,
+  Name 
+from players, penalties
+where players.playerNo = penalties.playerNo
+and amount>=50;
+
+5. output of PlayerNo and name of players born in the same year as R. Parmenter
+
+select
+  playerno,
+  name,
+  initials
+from players
+where year_of_birth=
+  (select 
+    year_of_birth
+  from players
+  where name='Parmenter'
+  and initials='R')
+and not (name='Parmenter') and not initials='R';
+
+6. output of playerNo and name of the oldest player from Stratford
+
+select
+  playerNo,
+  Name
+from players
+where year_of_birth=
+  (select min(year_of_birth) 
+  from players
+  where town='Stratford');
+
+7-12 EmpDept query
+7. search all departments, which have no employees
+
+emp:
+- deptno
+
+dept:
+- deptno
+
+get the department number (dept.deptno) that is not among emp.deptno
+
+select 
+    deptno
+from dept
+where deptno not in (
+select distinct 
+    deptno
+from emp);
+
+// funzt nicht
+select 
+    deptno
+from dept
+where deptno not exists (
+select distinct 
+    deptno
+from emp);
+
+// bekhans version
+select * from dept where not exists (select * from emp where emp.deptno = dept.deptno);
+
+
+
+8. search all employees who have the same job as JONES
+
+select 
+  ename 
+from emp
+where job=(
+  select 
+    job
+  from emp
+  where ename='JONES'
+)
+and not ename='JONES';
+
+9. show all employees who make more than the average employee from department 30.
+avg sal = 1566
+
+select
+    empno,
+    ename,
+    sal
+from emp
+where sal>(
+    select 
+        avg(sal)
+    from emp
+    where deptno=30
+);
+
+10. show all employees who earn more than any employee from department 30
+
+select
+    ename,
+    sal
+from emp
+where sal>(
+select max(sal)
+from emp
+where deptno=30
+);
+
+11. display all employees from department 10 whose job is not held by any employee from department 30
+// both work
+
+select  
+  empno,
+  ename,
+  job
+from emp
+where job not in (
+select
+    job
+from emp
+where deptno=30)
+and deptno=10;
+
+select  
+  empno,
+  ename,
+  job
+from emp
+where deptno=10 
+and job not in (
+select
+    job
+from emp
+where deptno=30);
+
+
+12. search for the employee data (EMPNO, ENAME, JOB, SAL) of the employee with the highest salary.
+
+select
+  empno, 
+  ename,
+  job, 
+  sal
+from emp
+where sal=(
+  select 
+    max(sal)
+  from emp
+);
+
+// If you exclude the president, who is not an employee
+select
+  empno, 
+  ename,
+  job, 
+  sal
+from emp
+where sal=(
+  select 
+    max(sal)
+  from emp
+  where not job='PRESIDENT'
+);
+
+=================================================
+
+SQL EXERCISE 5
+
+=================================================
+
+1-11 Tennis query
+1. number of new players per year
+
+select 
+  count(playerno)
+from players
+group by year_joined;
+
+2. number and average amount of penalties per player
+
+3. number of penalties for the years before 1983
+
+4. in which cities live more than 4 players
+
+5. PLAYERNO of those players whose penalty total is over 150
+
+6. NAME and INITIALS of those players who received more than one penalty
+
+7. in which years there were exactly 2 penalties
+
+8. NAME and INITIALS of the players who received 2 or more penalties over $40
+
+9. NAME and INITIALS of the player with the highest penalty amount
+
+10. in which year there were the most penalties and how many were there
+
+11. PLAYERNO, TEAMNO, WON - LOST sorted by the the lost.
+
+
+----------------------------------------------------
+12-19 EmpDept query
+----------------------------------------------------
+
+12. output of all employees from department 30 sorted by their salary starting with the highest salary.
+
+13. output of all employees sorted by job and within the job by their salary
+
+14. output of all employees sorted by their year of employment in descending order and within the year by their name
+
+15. output of all salesmen in descending order regarding the ratio commission to salary
+
+16. output the average salary to each department number
+
+17. calculate the average annual salaries of those jobs that are performed by more than 2 employees
+
+18. output all department numbers with at least 2 office workers
+
+19. find the average value for salary and commission of all employees from department 30
+
+
+=====================================================
+
+SQL Exercise 6
+
+=====================================================
+
+1-5 Tennis query
+1. NAME, INITIALS and number of sets won for each player
+
+2. NAME, PEN_DATE and AMOUNT sorted in descending order by AMOUNT
+
+3. TEAMNO, NAME (of the captain) per team
+
+4. NAME (player name), WON, LOST of all won matches
+
+5. PLAYERNO, NAME and penalty amount for each team player. If a player has not yet received a penalty, it should still be issued. Sorting should be done in ascending order of penalty amount
+
+----------------------------------------------------------
+6-9 EmptDept query
+----------------------------------------------------------
+
+6. in which city does the employee Allen work?
+
+7. search for all employees who earn more than their supervisor
+
+8. output the number of hires in each year
+
+9. output all employees who have a job like an employee from CHICAGO.
+
+
+=====================================================
+
+SQL Exercise 7
+
+=====================================================
+
+1-4 Tennis query
+1. output of players' names who played for both team 1 and team 2.
+
+2. output the NAME and INITIALS of the players who did not receive a penalty in 1980
+
+3. output of players who received at least one penalty over $80
+
+4. output of players who had all penalties over $80.
+
+------------------------------------------------------
+5-8 EmpDept query
+------------------------------------------------------
+
+5. find all employees whose salary is higher than the average salary of their department
+
+6. identify all departments that have at least one employee
+
+7. output of all departments that have at least one employee earning over $1000
+
+8. output of all departments in which each employee earns at least 1000,-.
+
+
+=====================================================
+SQL Exercise 8
+=====================================================
+
+creating the PARTS table([Parts insert and create tables])
+display the whole hierarchy of those parts that make up P3 and P9
+at which hierarchy level is P12 used in P1
+how many parts to P1 cost more than $20
+output of all direct and indirect employees belonging to JONES (without JONES itself, with corresponding indentation per hierarchy)
+output of all direct and indirect superiors of SMITH (including SMITH itself)
+output of the average salary for each hierarchy level
+SQL Exercise 6 using Joins
+Solve exercise 6 using Joins.
+
+=====================================================
+
+SQL Exercise 7 using Joins
+
+=====================================================
+
+Solve exercise 7 using Joins.
+
+
+=====================================================
+
+Competence Check
+
+=====================================================
+
+Tables Create the following tables like shown in the [Class Diagram]
+
+Class Diagram
+
+Table description:
+
+REGIONS contains rows that represent a region (for example, North, South America, Asia). COUNTRIES contains rows for countries. Each row is linked to a region. LOCATIONS contains the addresses of specific offices, warehouses and/or production sites of a company in a specific country. DEPARTMENTS displays department details where employees work. Each department can have a relationship that represents the head of department in the EMPLOYEES table. EMPLOYEES contains details of each employee working for a department. Not all employees must be assigned to a department. JOBS contains the types of positions that each employee can hold. JOB_HISTORY contains the individual positions that the employee has held so far. If an employee changes department or position within a department, a new row is added to this table with information about the employee's old position. JOB_GRADES identifies a salary range per pay grade level. The salary ranges do not overlap.
+
+Insert For inserting use the insert script file which is in the repository
+
+Selects and Joins
+1) The management would like a list of the different salaries per job. The output should contain the job_id as well as the sum of the salaries per job_id. In addition, the output should be sorted in descending order according to the sum of the salaries.
+
+2) The personnel department wants to have information about the average salary of the employees at the current time.
+
+3) The personnel department would like a list of all employees (first name, last name), on which the department name (department_name) is also displayed.
+
+4) For the new stationery, the secretary's office needs a list of all departments (department_name) as well as their address consisting of the postal code, the city, the province, and the street and house number
+
+5) The secretariat thanks for the list, but would like to have the name of the country in addition.
+
+6) The secretariat thanks for the updated list. Embarrassed, the first and last name as "Manager" of the respective manager of the department is now requested in addition.
+
+7) The personnel department needs a list of the employees with the following contents:
+
+ 7.1.) First and last name as "Name
+ 7.2.) job_title as "job"
+ 7.3.) The salary
+ 7.4.) The department name
+
+
+8) The new General Manager asks you to find out which subordinates each employee has. You could now collect the data manually, but something stirs inside you when you feel the challenge of generating the result via MySQL. Accept it!
