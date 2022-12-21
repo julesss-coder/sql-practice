@@ -32,30 +32,13 @@ where year_joined between 1970 and 1980;
 
 
 4. output of PlayerId, Name, Year of Birth of players born in a leap year.
-=== DOES NOT WORK - CHECK FOR LEAP YEAR IS INCORRECT ====
 select 
     playerno,
     name,
     year_of_birth
 from players
-where mod(year_of_birth, 4)=0 and
-mod(year_of_birth, 100)!=0 or
+where (mod(year_of_birth, 4)=0 and mod(year_of_birth, 100)!=0) or
 mod(year_of_birth, 400)=0;
-
-
-// Pseudocode for checking for leap year, see URL: https://de.wikipedia.org/wiki/Schaltjahr#Gregorianischer_Kalender 
-if year % 4 === 0:
-  if year % 100 !== 0:
-    leap year
-  else if year % 400 === 0:
-    leap year
-
-// SQL pseudocode for checking for leapyear
-if mod(year_of_birth, 4) = 0 then
-  if mod(year_of_birth, 100)!= 0
-  or
-  if mod(year_of_birth, 100)=0 and if mod(year_of_birth, 400)=0 then
-    // leap year
 
 ========================    
 // um einfach berechnungen ohne bestimmte datenbanken durchzufuehren, verwende `dual`
@@ -697,10 +680,17 @@ select
   deptno,
   count(empno)
 from emp
-where 
+where not job='PRESIDENT'
+group by deptno
+having count(empno) >= 2;
+
 
 19. find the average value for salary and commission of all employees from department 30
 
+select
+  round(avg(sal + nvl(comm, 0)), 2) as "Average salary and commission dept. 30"
+from emp
+where deptno=30;
 
 =====================================================
 
@@ -711,13 +701,61 @@ SQL Exercise 6
 1-5 Tennis query
 1. NAME, INITIALS and number of sets won for each player
 
+select
+  name,
+  initials, 
+  sum(won)
+from matches
+join players
+on matches.playerno = players.playerno
+group by name, initials;
+
 2. NAME, PEN_DATE and AMOUNT sorted in descending order by AMOUNT
+
+select 
+  name,
+  pen_date,
+  amount
+from penalties
+join players
+on penalties.playerno = players.playerno
+order by amount desc;
+
 
 3. TEAMNO, NAME (of the captain) per team
 
+select
+  teamno,
+  name
+from teams
+join players
+on teams.playerno = players.playerno;
+
+
 4. NAME (player name), WON, LOST of all won matches
 
+// won matches: more `won` points than `lost`
+
+select
+  name,
+  sum(won),
+  sum(lost)
+from matches
+join players
+on matches.playerno = players.playerno
+where won > lost
+group by name;
+
 5. PLAYERNO, NAME and penalty amount for each team player. If a player has not yet received a penalty, it should still be issued. Sorting should be done in ascending order of penalty amount
+
+select
+  players.playerno,
+  name,
+  amount
+from penalties
+full join players
+on penalties.playerno = players.playerno 
+order by amount;
 
 ----------------------------------------------------------
 6-9 EmptDept query
@@ -725,11 +763,64 @@ SQL Exercise 6
 
 6. in which city does the employee Allen work?
 
+select
+  emp.ename,
+  dept.loc
+from dept
+join emp
+on dept.deptno = emp.deptno
+where emp.ename='ALLEN'; // Use single quotes, it doesn't work with double quotes
+
+
 7. search for all employees who earn more than their supervisor
+
+select
+  A.ename as "employee name", B.ename as "Manager name"
+  from emp A, emp B
+  where A.ename <> B.ename
+  and A.mgr = B.empno
+  and A.sal > B.sal;
 
 8. output the number of hires in each year
 
+select
+  to_char(hiredate, 'yyyy')  as "Hire date",
+  count(to_char(hiredate, 'yyyy')) as "Number of hires / year"
+from emp
+group by to_char(hiredate, 'yyyy');
+
+
 9. output all employees who have a job like an employee from CHICAGO.
+-----------------
+Menge 1: Welche Jobs haben die Leute, die in Chicago arbeiten (in Department 30)?
+- Salesman, clerk, manager
+-----------------
+select
+  distinct job
+from emp
+join dept
+on dept.deptno = emp.deptno
+where emp.deptno=30
+group by job, ename;
+
+------------------
+Menge 2: Alle Angestellten, die als salesman, clerk oder manager arbeiten und nicht in Department 30 arbeiten. 
+------------------
+
+select
+  ename,
+  job,
+  emp.deptno
+from emp
+where job in (
+  select
+    distinct job
+  from emp
+  join dept
+  on dept.deptno = emp.deptno
+  where emp.deptno=30
+  group by job, ename
+) and not deptno=30;
 
 
 =====================================================
@@ -741,11 +832,104 @@ SQL Exercise 7
 1-4 Tennis query
 1. output of players' names who played for both team 1 and team 2.
 
-2. output the NAME and INITIALS of the players who did not receive a penalty in 1980
+// Intersection using `where` keyword - works
+select 
+  name,
+  initials
+from players
+where players.playerno in (
+  select
+    playerno
+  from matches
+  where teamno=1 and playerno in (
+    select
+      playerno
+    from matches
+    where teamno=2
+  )  
+);
+
+// Intersection using `intersect` keyword - works
+select 
+  name,
+  initials
+from players
+where players.playerno in (
+  select
+    playerno
+  from matches
+  where teamno=1
+  intersect
+  select
+    playerno
+  from matches
+  where teamno=2
+);
+
+// Intersection using `where` keyword - works
+select
+  playerno
+from matches
+where teamno=1 and playerno in (
+  select
+    playerno
+  from matches
+  where teamno=2
+);
+
+// Intersection using `intersect` keyword - works
+select
+  playerno
+from matches
+where teamno=1
+intersect
+select
+  playerno
+from matches
+where teamno=2;
+
 
 3. output of players who received at least one penalty over $80
 
+select
+  playerno
+from penalties
+where amount > 80
+group by playerno;
+
+
+===============================================
 4. output of players who had all penalties over $80.
+===============================================
+
+
+
+// = output of players where all penalties > 80
+
+select 
+  playerno 
+from penalties
+where amount = all (
+  select
+    amount
+  from penalties
+  where amount > 80
+);
+
+// all penalties per player
+select  
+  playerno,
+  amount
+from penalties
+where amount > 80
+group by playerno, amount
+order by playerno;
+
+// Liste den Spieler, wenn alle seine Strafen > 80 sind.
+select playerno from penalties
+where playerno = all (
+  select amount from penalties where amount > 80
+);
 
 ------------------------------------------------------
 5-8 EmpDept query
@@ -753,11 +937,47 @@ SQL Exercise 7
 
 5. find all employees whose salary is higher than the average salary of their department
 
+select
+  empno
+from emp
+where dept
+
+select 
+deptno, 
+avg(sal) 
+from emp 
+group by deptno;
+
 6. identify all departments that have at least one employee
+
+// works
+select  
+  deptno,
+  count(empno)
+from emp
+group by deptno
+having count(empno)>=1;
 
 7. output of all departments that have at least one employee earning over $1000
 
+
+select
+  distinct deptno
+from emp
+where sal > 1000;
+  
+
+
 8. output of all departments in which each employee earns at least 1000,-.
+
+select 
+  dname, 
+  min(sal)
+from dept
+join emp
+on emp.deptno = dept.deptno
+group by dname
+having min(sal) >= 1000;
 
 
 =====================================================
@@ -825,4 +1045,15 @@ Selects and Joins
 ==================
 
 TODO
-- [ ] SQL Exercise 3, 15: leap year: How to use if conditions in SQL to check leap year?
+Get hint on solution for:
+- [ ] Exercise 7.4.
+
+Ask to have my solution checked for:
+- [ ] Exercise 6.9.
+- [ ] Exercise 7.7.
+
+
+QUESTIONS
+- [ ] Exercise 7.8.: Can this be solved with `all` keyword? How?
+- [ ] kann man `distinct` auch vor dem zweiten, dritten, etc. Attribut anwenden?
+- [ ] Bei `JOIN`: welche Tabelle schreibt man als erste bei der Angabe des Fremdschluessels? Macht das einen Unterschied?
