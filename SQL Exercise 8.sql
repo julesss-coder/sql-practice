@@ -132,12 +132,9 @@ connect by prior ename=(
 );
 --===============================
 
--- === HIER WEITERMACHEN ----
-
-
 -- output of all direct and indirect superiors of SMITH (including SMITH itself)
 
--- Funktioniert
+-- Using empno - works
 select level, empno
 from emp
 -- Start with Smith's empno
@@ -145,48 +142,37 @@ start with empno=7369
 -- In next step, manager becomes employee (to another manager)
 connect by prior mgr=empno;
 
-/*
-Ausgabe:
+---- Using ename - works--------------
+select ename
+from emp
+-- Start with Smith's empno
+start with ename='SMITH'
+-- In next step, manager becomes employee (to another manager)
+connect by prior mgr=empno;
+-- FRAGE: Warum funktioniert das? Wieso wird `mgr` automatisch auf `mgr` von SMITH bezogen? Wieso geht das so einfach??
+-------------------
 
-1	7369
-2	7902
-3	7566
-4	7839
-*/
+-- As a tree - works--------------
+select lpad(ename, length(ename)+ level * 10 - 10, '-') tree
+from emp
+-- Start with Smith's empno
+start with ename='SMITH'
+-- In next step, manager becomes employee (to another manager)
+connect by prior mgr=empno;
+------------------------------------
 
-
----------------------
 -- output of the average salary for each hierarchy level
 
--- https://learnsql.com/blog/what-is-self-join-sql/ 
--------------
--- Experiment:
--- Output employee number, ename, mgr number, ename
+  -- works, checked avg. salaries - correct
+select 
+  level, 
+  round(avg(sal), 2) as "Avg. salary per level"
+from emp e1
+start with empno=7839
+connect by prior empno=mgr
+group by level;
 
-select    
-  employees.empno as "Employee ID",
-  employees.ename as "Employee name",
-  managers.empno as "Manager ID",
-  managers.ename as "Manager name"
-from emp employees
-join emp managers
-on employees.mgr = managers.empno;
 
-/* AUSGABE
-7902	FORD	7566	JONES
-7788	SCOTT	7566	JONES
-7844	TURNER	7698	BLAKE
-7499	ALLEN	7698	BLAKE
-7521	WARD	7698	BLAKE
-7900	JAMES	7698	BLAKE
-7654	MARTIN	7698	BLAKE
-7934	MILLER	7782	CLARK
-7876	ADAMS	7788	SCOTT
-7698	BLAKE	7839	KING
-7566	JONES	7839	KING
-7782	CLARK	7839	KING
-7369	SMITH	7902	FORD
-*/
 
 SQL Exercise 6 using Joins
 Solve exercise 6 using Joins.
