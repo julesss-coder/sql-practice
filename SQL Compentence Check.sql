@@ -16,6 +16,9 @@ REGIONS contains rows that represent a region (for example, North, South America
 
 --======================================================
 -- QUESTIONS
+-- Which table is the left and right table, respectively, in a JOIN statement?
+-- The left table is the one in the select part of the query (after `from`). The right table is the one you are joining on.
+-- URL: https://stackoverflow.com/questions/4109704/which-table-exactly-is-the-left-table-and-right-table-in-a-join-statement-s 
 -- Does the primary key always need to have the addition `not null`?
 -- Why does int(4) (or int with any other number) not work, even though INT is an ANSI-supported data type in Oracle SQL?
 
@@ -142,29 +145,6 @@ create table job_history (
 
 
 Insert For inserting use the insert script file which is in the repository
-
-Selects and Joins
-1) The management would like a list of the different salaries per job. The output should contain the job_id as well as the sum of the salaries per job_id. In addition, the output should be sorted in descending order according to the sum of the salaries.
-
-2) The personnel department wants to have information about the average salary of the employees at the current time.
-
-3) The personnel department would like a list of all employees (first name, last name), on which the department name (department_name) is also displayed.
-
-4) For the new stationery, the secretary's office needs a list of all departments (department_name) as well as their address consisting of the postal code, the city, the province, and the street and house number
-
-5) The secretariat thanks for the list, but would like to have the name of the country in addition.
-
-6) The secretariat thanks for the updated list. Embarrassed, the first and last name as "Manager" of the respective manager of the department is now requested in addition.
-
-7) The personnel department needs a list of the employees with the following contents:
-
- 7.1.) First and last name as "Name
- 7.2.) job_title as "job"
- 7.3.) The salary
- 7.4.) The department name
-
-
-8) The new General Manager asks you to find out which subordinates each employee has. You could now collect the data manually, but something stirs inside you when you feel the challenge of generating the result via MySQL. Accept it!
 
 ==================
 
@@ -496,3 +476,156 @@ VALUES  (200
        );
 
 */
+
+/*
+
+Selects and Joins
+1) The management would like a list of the different salaries per job. The output should contain the job_id as well as the sum of the salaries per job_id. In addition, the output should be sorted in descending order according to the sum of the salaries.
+
+*/
+-- works
+select 
+  job_id,
+  min_salary + max_salary as "Sum of min and max salary"
+from jobs
+order by "Sum of min and max salary" desc;
+
+
+/*
+
+2) The personnel department wants to have information about the average salary of the employees at the current time.
+
+-- for each employee, get current salary
+-- sum them up
+-- get average
+
+*/
+
+-- works
+select 
+  avg(salary) as "Average salary"
+from employees;
+
+/*
+
+3) The personnel department would like a list of all employees (first name, last name), on which the department name (department_name) is also displayed.
+*/
+-- works
+select 
+  first_name,
+  last_name,
+  department_name
+from employees
+-- left join in order to get all employees, whether they have a department or nor
+left join departments on employees.department_id = departments.department_id;
+
+/*
+4) For the new stationery, the secretary's office needs a list of all departments (department_name) as well as their address consisting of the postal code, the city, the province, and the street and house number
+*/
+
+-- works
+select
+  department_name,
+  postal_code,
+  city,
+  state_province,
+  street_address
+from departments
+-- left join, to get all departments, even those where no address is stored
+left join locations on departments.location_id = locations.location_id;
+
+/*
+5) The secretariat thanks for the list, but would like to have the name of the country in addition.
+*/
+-- works
+select
+  department_name,
+  postal_code,
+  city,
+  state_province,
+  street_address,
+  country_name
+from departments
+-- left join, to get all departments, even those where no address is stored
+left join locations on departments.location_id = locations.location_id
+left join countries on locations.country_id = countries.country_id;
+
+/*
+6) The secretariat thanks for the updated list. Embarrassed, the first and last name as "Manager" of the respective manager of the department is now requested in addition.
+*/
+select
+  department_name,
+  first_name || ' ' || last_name as "Manager",
+  postal_code,
+  city,
+  state_province,
+  street_address,
+  country_name
+from departments
+-- left join, to get all departments, even those where no address is stored
+left join locations on departments.location_id = locations.location_id
+left join countries on locations.country_id = countries.country_id
+-- left join, so that also departments without managers are listed
+left join employees on employees.employee_id = departments.manager_id;
+
+/*
+7) The personnel department needs a list of the employees with the following contents:
+
+ 7.1.) First and last name as "Name
+ 7.2.) job_title as "job"
+ 7.3.) The salary
+ 7.4.) The department name
+*/
+
+-- works
+select
+  first_name || ' ' || last_name as "Name",
+  job_title as "Job", -- join jobs on job_id
+  salary,
+  department_name -- join departments on department_id
+from employees
+left join jobs on employees.job_id = jobs.job_id
+left join departments on employees.department_id = departments.department_id;
+
+/*
+8) The new General Manager asks you to find out which subordinates each employee has. You could now collect the data manually, but something stirs inside you when you feel the challenge of generating the result via MySQL. Accept it!
+*/
+
+-- works, checked correctness of data with the query below this one
+select 
+  superiors.employee_id,
+  superiors.first_name || ' ' || superiors.last_name as "Employee",
+  subordinates.first_name || ' ' || subordinates.last_name as "Subordinate"
+from employees superiors
+join employees subordinates on superiors.employee_id = subordinates.manager_id
+order by superiors.employee_id;
+
+-- Query to check the correctness of above query:
+select employee_id, first_name || ' ' || last_name as "Name", manager_id from employees;
+-- EMPLOYEE_ID	Name	MANAGER_ID
+-- 100	Steven King	 - 
+-- 101	Neena Kochhar	100
+-- 102	Lex De Haan	100
+-- 103	Alexander Hunold	102
+-- 104	Bruce Ernst	103
+-- 107	Diana Lorentz	103
+-- 124	Kevin Mourgos	100
+-- 141	Trenna Rajs	124
+-- 142	Curtis Davies	124
+-- 143	Randall Matos	124
+-- 144	Peter Vargas	124
+-- 149	Eleni Zlotkey	100
+-- 174	Ellen Abel	149
+-- 176	Jonathon Taylor	149
+-- 178	Kimberely Grant	149
+-- 200	Jennifer Whalen	101
+-- 201	Michael Hartstein	100
+-- 202	Pat Fay	201
+-- 205	Shelley Higgins	101
+-- 206	William Gietz	205
+
+
+-- TO-DOS
+-- Do I have to do these tasks using `SELECT`s only, as well?
+-- Solve exercise 6 using Joins / Selects
+-- Solve exercise 7 using Joins / Selects.
